@@ -80,7 +80,6 @@ def zone_attributes(root, dir, tags, folio, parent, zone):
         w = att_list[i]["WIDTH"]
         h = att_list[i]["HEIGHT"]
         zone_att = {
-            "{http://www.w3.org/XML/1998/namespace}id":f"f{folio}_z{i+1}",
             "type":type,
             "subtype":subtype,
             "n":n,
@@ -124,16 +123,25 @@ def make_tei(ordered_files, dir):
         # for every <Page> in this ALTO file, create a <zone> for each <TextBlock> and assign the latter's attributes
         block_att, list_treated_blocks = zone_attributes(alto_root, dir, tag_dict, folio, "PrintSpace/", "TextBlock")
         for i in range(len(list_treated_blocks)):
-            text_block = etree.SubElement(surface, "zone", block_att[i])
+            xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"f{folio}_z{i+1}"}
+            text_block = etree.SubElement(surface, "zone", xml_id)
+            for k,v in block_att[i].items():
+                text_block.attrib[k]=v
 
             # for every <TextBlock> in this ALTO file that has at least one <TextLine>, create a <zone> and assign its attributes
             text_line_att, list_treated_lines = zone_attributes(alto_root, dir, tag_dict, folio, f'TextBlock[@ID="{list_treated_blocks[i]}"]/', "TextLine")
             if len(list_treated_lines) > 0:
                 for y in range(len(list_treated_lines)):
-                    text_line = etree.SubElement(text_block, "zone", text_line_att[y])
+                    xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"f{folio}_z{i+1}_l{y+1}"}
+                    text_line = etree.SubElement(text_block, "zone", xml_id)
+                    for k,v in text_line_att[y].items():
+                        text_line.attrib[k]=v
 
                     # for every <TextLine> in this ALTO file that has a <String>, create a <Line>
-                    etree.SubElement(text_line, "line")
+                    if alto_root.find(f'.//a:TextLine[@ID="{list_treated_lines[y]}"]/a:String', namespaces=NS).get("CONTENT") is not None:
+                        xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"f{folio}_z{i+1}_l{y+1}t"}
+                        string = etree.SubElement(text_line, "line", xml_id)
+                        string.text = alto_root.find(f'.//a:TextLine[@ID="{list_treated_lines[y]}"]/a:String', namespaces=NS).get("CONTENT")
             
     
     with open(f'data/{os.path.basename(directory)}.xml', 'wb') as f:
