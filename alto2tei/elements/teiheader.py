@@ -1,49 +1,43 @@
-import json
-import os
-import urllib.request
-import re
-
 from lxml import etree
-from SPARQLWrapper import JSON, SPARQLWrapper
+import os
+from datetime import datetime
+
+from .api.teiheader_data import get_data, unimarc
+
+NS = {"s":"http://www.loc.gov/zing/srw/", "m":"info:lc/xmlns/marcxchange-v2"}
 
 
 def teiheader(directory, root):
-    sparql = sparql_data(directory)
-    manifest = manifest_data(directory)
+    unimarc_xml, perfect_match, manifest_data = unimarc(directory)
+    data = get_data(unimarc_xml)
     teiheader = etree.SubElement(root, "teiHeader")
     filedesc = etree.SubElement(teiheader, "fileDesc")
-    filedesc = make_titlestmt(filedesc, sparql, manifest)
-    #filedesc = make_souredesc(filedesc, sparql, manifest)
+    # data = [author_data, title_data, bib_data]
+    titlestmt = make_titlestmt(filedesc, data[0], data[1], manifest_data["manifest_title"])
+    publicationstmt = make_publicationstmt(filedesc)
+    sourcedesc = make_souredesc(directory, filedesc, data[0], data[1], data[2], manifest_data, perfect_match)
     return root
 
-def make_titlestmt(filedesc, sparql, manifest):
-    
+
+def make_titlestmt(filedesc, author_data, title_data, manifest_title):
     titlestmt = etree.SubElement(filedesc, "titleStmt")
-    title_titlestmt = etree.SubElement(titlestmt, "title")
-    title_titlestmt.text = manifest["title"]
-
-    titlestmt = author_titlstmt(titlestmt, sparql, manifest)
+    title = etree.SubElement(titlestmt, "title")
+    title.text = manifest_title
+    if author_data:
+        for i in range(len(author_data)):
+            author = etree.SubElement(titlestmt, "author", author_data[i]["id"])
+            persname = etree.SubElement(author, "persName")
+            if author_data[i]["author_forename"]:
+                forename = etree.SubElement(persname, "forename")
+                forename.text = author_data[i]["author_forename"]
+            if author_data[i]["author_surname"]:
+                surname = etree.SubElement(persname, "surname")
+                surname.text = author_data[i]["author_surname"]
+            if author_data[i]["author_id"][:4] == "ISNI":
+                ptr = etree.SubElement(persname, "ptr")
+                ptr.attrib["type"] = "isni"
+                ptr.attrib["target"] = author_data[i]["author_id"][4:]
     titlestmt = resp_stmt(titlestmt)
-
-    return filedesc
-
-
-def author_titlstmt(titlestmt, sparql, manifest):
-    if manifest["creator"]:
-        try:
-            author = re.search(r"(.+)\s[\(|\.]", manifest["creator"]).group(1)
-            author_titlestmt = etree.SubElement(titlestmt, "author")
-            author_titlestmt.attrib["{http://www.w3.org/XML/1998/namespace}id"] = author[:3]
-            persname = etree.SubElement(author_titlestmt, "persName")
-            author_name = etree.SubElement(persname, "name")
-            author_name.text = author
-            author_persname_ptr = etree.SubElement(persname, "ptr")
-            author_persname_ptr.attrib["type"] = "isni"
-            author_persname_ptr.attrib["target"] = sparql["author_isni"]
-        except:
-            print("did not add author")
-    else:
-        pass
     return titlestmt
 
 
@@ -54,7 +48,7 @@ def resp_stmt(titlestmt):
     respstmt = etree.SubElement(titlestmt, "respStmt")
     respstmt.attrib["{http://www.w3.org/XML/1998/namespace}id"] = editor1_forename[0]+editor1_surname[0]
     resp = etree.SubElement(respstmt, "resp")
-    resp.text = "restructured by"
+    resp.text = "transformation from ALTO to TEI by"
     editor_respstmt_persname = etree.SubElement(respstmt, "persName")
     editor_respstmt_forename = etree.SubElement(editor_respstmt_persname, "forename")
     editor_respstmt_forename.text = editor1_forename
@@ -65,77 +59,122 @@ def resp_stmt(titlestmt):
     editor_respstmt_ptr.attrib["target"] = editor1_orcid
 
 
-def make_souredesc(filedesc, sparql, manifest):
-    sourcedesc = etree.SubElement(filedesc, "publicationStmt")
+def empty_sourcedesc(directory, filedesc, author_data):
+    sourcedesc = etree.SubElement(filedesc, "sourceDesc")
     bibl = etree.SubElement(sourcedesc, "bibl")
-    #author_bibl = etree.SubElement(bibl, "author")
-    #author_bibl.text = m["creator"][0]
-    #if author_isni is not None:
-        #author_bibl.attrib["xml_id"] = author_isni["value"]
-    if sparql["publisher"] is not None:
-        publisher_bibl = etree.SubElement(bibl, "publisher")
-        publisher_bibl.text = sparql["publisher"]["value"]
-    date_bibl = etree.SubElement(bibl, "date")
-    date_bibl.attrib["when"] = manifest["date"]
-    date_bibl.text = manifest["date"]
+    ptr = etree.SubElement(bibl, "ptr")
+
+    if author_data:
+            for i in range(len(author_data)):
+                author = etree.SubElement(bibl, "author")
+                persname = etree.SubElement(author, "persName")
+                if author_data[i]["author_forename"]:
+                    forename = etree.SubElement(persname, "forename")
+                    forename.text = author_data[i]["author_forename"]
+                if author_data[i]["author_surname"]:
+                    surname = etree.SubElement(persname, "surname")
+                    surname.text = author_data[i]["author_surname"]
+
+    title = etree.SubElement(bibl, "title")
+    title.text = "Information not available."
+    pubplace = etree.SubElement(bibl, "pubPlace")
+    pubplace.text = "Information not available."
+    publisher = etree.SubElement(bibl, "publisher")
+    publisher.text = "Information not available."
+    d = etree.SubElement(bibl, "date")
+    d.text = "Information not available."
+    msdesc = etree.SubElement(sourcedesc, "msDesc")
+    msidentifier = etree.SubElement(msdesc, "msIdentifier")
+    country = etree.SubElement(msidentifier, "country")
+    settlement = etree.SubElement(msidentifier, "settlement")
+    settlement.text = "Information not available."
+    repository = etree.SubElement(msidentifier, "repository")
+    repository.text = "Information not available."
+    idno = etree.SubElement(msidentifier, "idno")  # côte dans le catalogue
+    altidentifier = etree.SubElement(msidentifier, "altIdentifier", type="ark")
+    ark_idno = etree.SubElement(altidentifier, "idno")
+    ark_idno.text = os.path.basename(directory)
+    physdesc = etree.SubElement(msdesc, "physDesc")
+    objectdesc = etree.SubElement(physdesc, "objectDesc")
+    p = etree.SubElement(objectdesc, "p")
+    p.text = "Information not available."
+    elements = {
+        "sourcedesc":sourcedesc,
+        "bibl":bibl,
+        "ptr":ptr,
+        "title":title,
+        "pubplace":pubplace,
+        "publisher":publisher,
+        "d":d,
+        "msdesc":msdesc,
+        "msidentifier":msidentifier,
+        "country":country,
+        "settlement":settlement,
+        "repository":repository,
+        "idno":idno,
+        "physdesc":physdesc,
+        "objectdesc":objectdesc,
+        "p":p
+    }
+    return elements
+
+
+def make_souredesc(directory, filedesc, author_data, title_data, bib_data, manifest_data, perfect_match):
+    elements = empty_sourcedesc(directory, filedesc, author_data)
+    if title_data["title_uniform"]:
+        elements["title"].text = title_data["title_uniform"]
+    else:
+        elements["title"].text = manifest_data["manifest_title"]
+    if perfect_match:
+        if bib_data["ptr"]:
+            elements["ptr"].attrib["target"] = bib_data["ptr"]
+        if bib_data["pubplace"]:
+            elements["pubplace"].text = bib_data["pubplace"]
+            if bib_data["pubplace_att"]:
+                elements["pubplace"].attrib["key"] = bib_data["pubplace_att"]
+        if bib_data["publisher"]:
+            elements["publisher"].text = bib_data["publisher"]
+        if bib_data["date"]:
+            elements["d"].text = bib_data["date"]
+        else:
+            elements["d"].text = manifest_data["manifest_date"]
+        if bib_data["country"]:
+            elements["country"].attrib["key"] = bib_data["country"]
+        if bib_data["settlement"]:
+            elements["settlement"].text = bib_data["settlement"]
+        if bib_data["repository"]:
+            elements["repository"].text = bib_data["repository"]
+        if bib_data["idno"]:
+            elements["idno"].text = bib_data["idno"]
+        if bib_data["objectdesc"]:
+            elements["p"].text = bib_data["objectdesc"]
+    else:
+        elements["pubplace"].text = None
+        elements["pubplace"].append(etree.Comment("Digitized source not found in institution's catalogue."))
+        elements["publisher"].text = None
+        elements["publisher"].append(etree.Comment("Digitized source not found in institution's catalogue."))
+        elements["d"].text = manifest_data["manifest_date"]
+        elements["country"].text = None
+        elements["country"].append(etree.Comment("Digitized source not found in institution's catalogue."))
+        elements["settlement"].text = None
+        elements["settlement"].append(etree.Comment("Digitized source not found in institution's catalogue."))
+        elements["repository"].text = None
+        elements["repository"].append(etree.Comment("Digitized source not found in institution's catalogue."))
+        elements["idno"].text = None
+        elements["idno"].append(etree.Comment("Digitized source not found in institution's catalogue."))
+        elements["p"].text = None
+        elements["p"].append(etree.Comment("Digitized source not found in institution's catalogue."))
+
     return filedesc
 
 
-def manifest_data(directory):
-    r = urllib.request.urlopen(f"https://gallica.bnf.fr/iiif/ark:/12148/{os.path.basename(directory)}/manifest.json/")
-    data = json.loads(r.read())
-    title = data["metadata"][5]["value"]
-    creator = data["metadata"][9]["value"]
-    date = data["metadata"][6]["value"]
-    manifest = {"title":title, "creator":creator, "date":date}
-    return manifest
-
-
-def sparql_data(directory):
-    sparql = SPARQLWrapper("http://data.bnf.fr/sparql")
-    # the request
-    sparql.setQuery("""PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-                       PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-                       PREFIX dcterms: <http://purl.org/dc/terms/>
-                       PREFIX rdam: <http://rdaregistry.info/Elements/m/>
-                       PREFIX owl: <http://www.w3.org/2002/07/owl#>
-                       PREFIX rdarelationships: <http://rdvocab.info/RDARelationshipsWEMI/>
-                       PREFIX rdagroup1elements: <http://rdvocab.info/Elements/>
-                       PREFIX marcrel: <http://id.loc.gov/vocabulary/relators/>
-                       PREFIX isni: <http://isni.org/ontology#>
-                       SELECT ?title ?author ?name_author ?publication_place ?publisher_name 
-                       ?publication_date ?isniAuthor ?sameas
-                       WHERE {
-                       ?manifestation <http://rdvocab.info/RDARelationshipsWEMI/electronicReproduction> <https://gallica.bnf.fr/ark:/12148/""" + os.path.basename(directory) + """>.
-                       ?manifestation dcterms:title ?title;
-                       <http://rdvocab.info/RDARelationshipsWEMI/expressionManifested> ?expression.
-                       OPTIONAL {?manifestation rdagroup1elements:publishersName ?publisher_name}.
-                       OPTIONAL {?manifestation rdagroup1elements:placeOfPublication ?publication_place}.
-                       ?manifestation dcterms:date ?publication_date.
-                       OPTIONAL {?expression marcrel:aut ?author.
-                       ?authorConcept foaf:focus ?author.
-                       ?authorConcept owl:sameAs ?sameas FILTER(contains(str(?sameas), 'biblissima')).
-                       ?authorConcept isni:identifierValid ?isniAuthor.
-                       ?authorConcept skos:prefLabel ?name_author}.
-                       }"""
-                    )
-
-    sparql.setReturnFormat(JSON)
-    r = sparql.query().convert()
-
-    try:
-        pub_place = r["results"]["bindings"][0].get("publication_place")["value"]
-    except:
-        pub_place = "none"
-    try:
-        publisher = r["results"]["bindings"][0].get("publisher_name")["value"]
-    except:
-        publisher = "none"
-    try:
-        author_isni = r["results"]["bindings"][0].get("isniAuthor")["value"]
-    except:
-        author_isni = "none"
-
-    sparql = {"publisher":publisher, "pub_place":pub_place, "author_isni":author_isni}
-
-    return sparql
+def make_publicationstmt(filedesc):
+    publicationstmt = etree.SubElement(filedesc, "publicationStmt")
+    publisher = etree.SubElement(publicationstmt, "publisher")
+    publisher.text = "Gallic(orpor)a"
+    authority = etree.SubElement(publicationstmt, 'authority')
+    authority.text = "BnF DATAlab"
+    availability = etree.SubElement(publicationstmt, 'availability', status="restricted", n="cc-by")
+    licence = etree.SubElement(availability, "licence", target="https://creativecommons.org/licenses/by/4.0/")
+    today = datetime.today().strftime('%Y-%m-%d')
+    d = etree.SubElement(publicationstmt, "date", when=today)

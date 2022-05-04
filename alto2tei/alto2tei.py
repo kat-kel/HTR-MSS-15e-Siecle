@@ -1,11 +1,12 @@
 import os
 import re
 import sys
+from datetime import datetime
 
 from lxml import etree
 
-from elements.sourcedoc import sourcedoc  # by Kelly
-from elements.teiheader import teiheader  # by Claire (modified by Kelly)
+from elements.sourcedoc import sourcedoc
+from elements.teiheader import teiheader
 
 NS = {'a':"http://www.loc.gov/standards/alto/ns-v4#"}  # XML-ALTO namespace
 
@@ -41,11 +42,24 @@ def make_tei(ordered_files, directory):
     tei_root_att = {"xmlns":"http://www.tei-c.org/ns/1.0", "{http://www.w3.org/XML/1998/namespace}id":f"ark_12148_{os.path.basename(directory)}"}
     root = etree.Element("TEI", tei_root_att)
     
+    print("=====================================")
+    print(f"\33[32m~ now processing {os.path.basename(directory)} ~\x1b[0m")
     # -- TEIHEADER --
+    print(f"\33[33mcreating <teiHeader>\x1b[0m")
+    t0 = datetime.utcnow()
     root = teiheader(directory, root)
+    t1 = datetime.utcnow()
+    dif = t1-t0
+    print(f"|________finished in {dif.seconds}.{dif.microseconds} seconds")
     
     # -- SOURCEDOC --
+    print(f"\33[33mcreating <sourceDoc>\x1b[0m")
+    t0 = datetime.utcnow()
     root = sourcedoc(ordered_files, directory, root)
+    t1 = datetime.utcnow()
+    dif = t1-t0
+    print(f"|________finished in {dif.seconds}.{dif.microseconds} seconds")
+    print("")
     
     with open(f'data/{os.path.basename(directory)}.xml', 'wb') as f:
         etree.ElementTree(root).write(f, encoding="utf-8", xml_declaration=True, pretty_print=True)
