@@ -5,7 +5,7 @@
       <titleStmt>
         <title>La vie et miracles de monseigneur saint Martin, translatee de latin en francoys</title>
         <respStmt xml:id="KC">
-          <resp>restructured by</resp>
+          <resp>transformation from ALTO to TEI by</resp>
           <persName>
             <forename>Kelly</forename>
             <surname>Christensen</surname>
@@ -13,6 +13,39 @@
           </persName>
         </respStmt>
       </titleStmt>
+      <publicationStmt>
+        <publisher>Gallic(orpor)a</publisher>
+        <authority>BnF DATAlab</authority>
+        <availability status="restricted" n="cc-by">
+          <licence target="https://creativecommons.org/licenses/by/4.0/"/>
+        </availability>
+        <date when="2022-05-04"/>
+      </publicationStmt>
+      <sourceDesc>
+        <bibl>
+          <ptr target="http://catalogue.bnf.fr/ark:/12148/cb33644454n"/>
+          <title>La vie et miracles de monseigneur saint Martin, translatee de latin en francoys</title>
+          <pubPlace key="FR">Tours</pubPlace>
+          <publisher>Mathieu Latheron</publisher>
+          <date>7 V 1496</date>
+        </bibl>
+        <msDesc>
+          <msIdentifier>
+            <country key="FR"/>
+            <settlement>Paris</settlement>
+            <repository>BNF</repository>
+            <idno>VELINS-1159</idno>
+            <altIdentifier type="ark">
+              <idno>bpt6k10516302</idno>
+            </altIdentifier>
+          </msIdentifier>
+          <physDesc>
+            <objectDesc>
+              <p>Texte imprimé</p>
+            </objectDesc>
+          </physDesc>
+        </msDesc>
+      </sourceDesc>
     </fileDesc>
   </teiHeader>
   <sourceDoc>

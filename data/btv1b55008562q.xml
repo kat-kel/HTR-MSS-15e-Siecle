@@ -4,14 +4,15 @@
     <fileDesc>
       <titleStmt>
         <title>Guillaume Budé : De l'institution du prince</title>
-        <author xml:id="Bud">
+        <author xml:id="Bu0">
           <persName>
-            <name>Budé</name>
-            <ptr type="isni" target="none"/>
+            <forename>Guillaume</forename>
+            <surname>Budé</surname>
+            <ptr type="isni" target="0000000121036035"/>
           </persName>
         </author>
         <respStmt xml:id="KC">
-          <resp>restructured by</resp>
+          <resp>transformation from ALTO to TEI by</resp>
           <persName>
             <forename>Kelly</forename>
             <surname>Christensen</surname>
@@ -19,6 +20,59 @@
           </persName>
         </respStmt>
       </titleStmt>
+      <publicationStmt>
+        <publisher>Gallic(orpor)a</publisher>
+        <authority>BnF DATAlab</authority>
+        <availability status="restricted" n="cc-by">
+          <licence target="https://creativecommons.org/licenses/by/4.0/"/>
+        </availability>
+        <date when="2022-05-04"/>
+      </publicationStmt>
+      <sourceDesc>
+        <bibl>
+          <ptr/>
+          <author>
+            <persName>
+              <forename>Guillaume</forename>
+              <surname>Budé</surname>
+            </persName>
+          </author>
+          <title>L'institution du prince</title>
+          <pubPlace>
+            <!--Digitized source not found in institution's catalogue.-->
+          </pubPlace>
+          <publisher>
+            <!--Digitized source not found in institution's catalogue.-->
+          </publisher>
+          <date>1501-1600</date>
+        </bibl>
+        <msDesc>
+          <msIdentifier>
+            <country>
+              <!--Digitized source not found in institution's catalogue.-->
+            </country>
+            <settlement>
+              <!--Digitized source not found in institution's catalogue.-->
+            </settlement>
+            <repository>
+              <!--Digitized source not found in institution's catalogue.-->
+            </repository>
+            <idno>
+              <!--Digitized source not found in institution's catalogue.-->
+            </idno>
+            <altIdentifier type="ark">
+              <idno>btv1b55008562q</idno>
+            </altIdentifier>
+          </msIdentifier>
+          <physDesc>
+            <objectDesc>
+              <p>
+                <!--Digitized source not found in institution's catalogue.-->
+              </p>
+            </objectDesc>
+          </physDesc>
+        </msDesc>
+      </sourceDesc>
     </fileDesc>
   </teiHeader>
   <sourceDoc>
