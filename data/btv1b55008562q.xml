@@ -12,7 +12,7 @@
           </persName>
         </author>
         <respStmt xml:id="KC">
-          <resp>transformation from ALTO to TEI by</resp>
+          <resp>transformation from ALTO4 to TEI by</resp>
           <persName>
             <forename>Kelly</forename>
             <surname>Christensen</surname>
@@ -20,13 +20,16 @@
           </persName>
         </respStmt>
       </titleStmt>
+      <extent>
+        <measure unit="images" n="20"/>
+      </extent>
       <publicationStmt>
         <publisher>Gallic(orpor)a</publisher>
         <authority>BnF DATAlab</authority>
         <availability status="restricted" n="cc-by">
           <licence target="https://creativecommons.org/licenses/by/4.0/"/>
         </availability>
-        <date when="2022-05-04"/>
+        <date when="2022-05-05"/>
       </publicationStmt>
       <sourceDesc>
         <bibl>

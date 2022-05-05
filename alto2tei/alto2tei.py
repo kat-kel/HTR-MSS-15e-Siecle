@@ -37,17 +37,17 @@ def make_tei(ordered_files, directory):
         ordered_files (list): names of ALTO files in the directory
         directory (path): path to document directory
     """    
-    
+    print("=====================================")
+    print(f"\33[32m~ now processing {os.path.basename(directory)} ~\x1b[0m")
+
     # -- TEI --
     tei_root_att = {"xmlns":"http://www.tei-c.org/ns/1.0", "{http://www.w3.org/XML/1998/namespace}id":f"ark_12148_{os.path.basename(directory)}"}
     root = etree.Element("TEI", tei_root_att)
     
-    print("=====================================")
-    print(f"\33[32m~ now processing {os.path.basename(directory)} ~\x1b[0m")
     # -- TEIHEADER --
     print(f"\33[33mcreating <teiHeader>\x1b[0m")
     t0 = datetime.utcnow()
-    root = teiheader(directory, root)
+    root = teiheader(directory, root, str(len(ordered_files)))
     t1 = datetime.utcnow()
     dif = t1-t0
     print(f"|________finished in {dif.seconds}.{dif.microseconds} seconds")

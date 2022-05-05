@@ -7,19 +7,20 @@ from .api.teiheader_data import get_data, unimarc
 NS = {"s":"http://www.loc.gov/zing/srw/", "m":"info:lc/xmlns/marcxchange-v2"}
 
 
-def teiheader(directory, root):
+def teiheader(directory, root, count_pages):
     unimarc_xml, perfect_match, manifest_data = unimarc(directory)
     data = get_data(unimarc_xml)
     teiheader = etree.SubElement(root, "teiHeader")
     filedesc = etree.SubElement(teiheader, "fileDesc")
-    # data = [author_data, title_data, bib_data]
-    titlestmt = make_titlestmt(filedesc, data[0], data[1], manifest_data["manifest_title"])
-    publicationstmt = make_publicationstmt(filedesc)
-    sourcedesc = make_souredesc(directory, filedesc, data[0], data[1], data[2], manifest_data, perfect_match)
+    make_titlestmt(filedesc, data[0], manifest_data["manifest_title"])
+    extent = etree.SubElement(filedesc, "extent")
+    etree.SubElement(extent, "measure", unit="images", n=count_pages)
+    make_publicationstmt(filedesc)
+    make_souredesc(directory, filedesc, data[0], data[1], data[2], manifest_data, perfect_match)
     return root
 
 
-def make_titlestmt(filedesc, author_data, title_data, manifest_title):
+def make_titlestmt(filedesc, author_data, manifest_title):
     titlestmt = etree.SubElement(filedesc, "titleStmt")
     title = etree.SubElement(titlestmt, "title")
     title.text = manifest_title
@@ -48,7 +49,7 @@ def resp_stmt(titlestmt):
     respstmt = etree.SubElement(titlestmt, "respStmt")
     respstmt.attrib["{http://www.w3.org/XML/1998/namespace}id"] = editor1_forename[0]+editor1_surname[0]
     resp = etree.SubElement(respstmt, "resp")
-    resp.text = "transformation from ALTO to TEI by"
+    resp.text = "transformation from ALTO4 to TEI by"
     editor_respstmt_persname = etree.SubElement(respstmt, "persName")
     editor_respstmt_forename = etree.SubElement(editor_respstmt_persname, "forename")
     editor_respstmt_forename.text = editor1_forename
@@ -99,21 +100,16 @@ def empty_sourcedesc(directory, filedesc, author_data):
     p = etree.SubElement(objectdesc, "p")
     p.text = "Information not available."
     elements = {
-        "sourcedesc":sourcedesc,
         "bibl":bibl,
         "ptr":ptr,
         "title":title,
         "pubplace":pubplace,
         "publisher":publisher,
         "d":d,
-        "msdesc":msdesc,
-        "msidentifier":msidentifier,
         "country":country,
         "settlement":settlement,
         "repository":repository,
         "idno":idno,
-        "physdesc":physdesc,
-        "objectdesc":objectdesc,
         "p":p
     }
     return elements
@@ -175,6 +171,6 @@ def make_publicationstmt(filedesc):
     authority = etree.SubElement(publicationstmt, 'authority')
     authority.text = "BnF DATAlab"
     availability = etree.SubElement(publicationstmt, 'availability', status="restricted", n="cc-by")
-    licence = etree.SubElement(availability, "licence", target="https://creativecommons.org/licenses/by/4.0/")
+    etree.SubElement(availability, "licence", target="https://creativecommons.org/licenses/by/4.0/")
     today = datetime.today().strftime('%Y-%m-%d')
-    d = etree.SubElement(publicationstmt, "date", when=today)
+    etree.SubElement(publicationstmt, "date", when=today)
