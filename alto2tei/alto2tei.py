@@ -7,6 +7,7 @@ from lxml import etree
 
 from elements.sourcedoc import sourcedoc
 from elements.teiheader import teiheader
+from elements.body import body
 
 NS = {'a':"http://www.loc.gov/standards/alto/ns-v4#"}  # XML-ALTO namespace
 
@@ -17,7 +18,7 @@ def order_files(dir):
         For example, it corrects ["file_f10", "file_f9"] to ["file_f9", "file_f10"].
 
     Args:
-        dir (path): path to directory
+        dir (path): path to directory containing ALTO-encoded transcriptions of the document's pages
     
     Returns:
         ordered_files (list): file names from directory ordered by folio number
@@ -35,7 +36,7 @@ def make_tei(ordered_files, directory):
 
     Args:
         ordered_files (list): names of ALTO files in the directory
-        directory (path): path to document directory
+        directory (path): path to directory containing ALTO-encoded transcriptions of the document's pages
     """    
     print("=====================================")
     print(f"\33[32m~ now processing {os.path.basename(directory)} ~\x1b[0m")
@@ -56,6 +57,15 @@ def make_tei(ordered_files, directory):
     print(f"\33[33mcreating <sourceDoc>\x1b[0m")
     t0 = datetime.utcnow()
     root = sourcedoc(ordered_files, directory, root)
+    t1 = datetime.utcnow()
+    dif = t1-t0
+    print(f"|________finished in {dif.seconds}.{dif.microseconds} seconds")
+    print("")
+
+    # -- BODY --
+    print(f"\33[33mcreating <body>\x1b[0m")
+    t0 = datetime.utcnow()
+    root = body(root)
     t1 = datetime.utcnow()
     dif = t1-t0
     print(f"|________finished in {dif.seconds}.{dif.microseconds} seconds")

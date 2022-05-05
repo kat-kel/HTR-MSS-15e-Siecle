@@ -8,8 +8,17 @@ NS = {"s":"http://www.loc.gov/zing/srw/", "m":"info:lc/xmlns/marcxchange-v2"}
 
 
 def teiheader(directory, root, count_pages):
-    unimarc_xml, perfect_match, manifest_data = unimarc(directory)
-    data = get_data(unimarc_xml)
+    """Create all elements of the <teiHeader>.
+
+    Args:
+        directory (path): path to directory containing ALTO-encoded transcriptions of the document's pages
+        root (etree): XML tree
+        count_pages (string): number of files in directory
+
+    Returns:
+        root (etree): XML tree
+    """    
+    data, manifest_data, perfect_match = get_data(directory)
     teiheader = etree.SubElement(root, "teiHeader")
     filedesc = etree.SubElement(teiheader, "fileDesc")
     make_titlestmt(filedesc, data[0], manifest_data["manifest_title"])
@@ -17,10 +26,18 @@ def teiheader(directory, root, count_pages):
     etree.SubElement(extent, "measure", unit="images", n=count_pages)
     make_publicationstmt(filedesc)
     make_souredesc(directory, filedesc, data[0], data[1], data[2], manifest_data, perfect_match)
+    make_profiledesc(teiheader, data[3])
     return root
 
 
 def make_titlestmt(filedesc, author_data, manifest_title):
+    """Retrieve data from parsed Unimarc XML and input it into TEI tree.
+
+    Args:
+        filedesc (etree): parsed <fileDesc> element of TEI file
+        author_data (dict): each author's name(s), isni, and unique XML ID
+        manifest_title (dict): document title according to IIIF manifest
+    """    
     titlestmt = etree.SubElement(filedesc, "titleStmt")
     title = etree.SubElement(titlestmt, "title")
     title.text = manifest_title
@@ -43,6 +60,11 @@ def make_titlestmt(filedesc, author_data, manifest_title):
 
 
 def resp_stmt(titlestmt):
+    """_summary_
+
+    Args:
+        titlestmt (_type_): _description_
+    """    
     editor1_forename = "Kelly"
     editor1_surname = "Christensen"
     editor1_orcid = "000000027236874X"
@@ -58,6 +80,18 @@ def resp_stmt(titlestmt):
     editor_respstmt_ptr = etree.SubElement(editor_respstmt_persname, "ptr")
     editor_respstmt_ptr.attrib["type"] = "orcid"
     editor_respstmt_ptr.attrib["target"] = editor1_orcid
+
+
+def make_publicationstmt(filedesc):
+    publicationstmt = etree.SubElement(filedesc, "publicationStmt")
+    publisher = etree.SubElement(publicationstmt, "publisher")
+    publisher.text = "Gallic(orpor)a"
+    authority = etree.SubElement(publicationstmt, 'authority')
+    authority.text = "BnF DATAlab"
+    availability = etree.SubElement(publicationstmt, 'availability', status="restricted", n="cc-by")
+    etree.SubElement(availability, "licence", target="https://creativecommons.org/licenses/by/4.0/")
+    today = datetime.today().strftime('%Y-%m-%d')
+    etree.SubElement(publicationstmt, "date", when=today)
 
 
 def empty_sourcedesc(directory, filedesc, author_data):
@@ -161,16 +195,12 @@ def make_souredesc(directory, filedesc, author_data, title_data, bib_data, manif
         elements["p"].text = None
         elements["p"].append(etree.Comment("Digitized source not found in institution's catalogue."))
 
-    return filedesc
 
-
-def make_publicationstmt(filedesc):
-    publicationstmt = etree.SubElement(filedesc, "publicationStmt")
-    publisher = etree.SubElement(publicationstmt, "publisher")
-    publisher.text = "Gallic(orpor)a"
-    authority = etree.SubElement(publicationstmt, 'authority')
-    authority.text = "BnF DATAlab"
-    availability = etree.SubElement(publicationstmt, 'availability', status="restricted", n="cc-by")
-    etree.SubElement(availability, "licence", target="https://creativecommons.org/licenses/by/4.0/")
-    today = datetime.today().strftime('%Y-%m-%d')
-    etree.SubElement(publicationstmt, "date", when=today)
+def make_profiledesc(teiheader, data):
+    profiledesc = etree.SubElement(teiheader, "profileDesc")
+    langusage = etree.SubElement(profiledesc, "langUsage")
+    if data["lang"]:
+        etree.SubElement(langusage, "language", ident=data["lang"])
+    else:
+        language = etree.SubElement(langusage, "language")
+        language.append(etree.Comment("Information not available"))

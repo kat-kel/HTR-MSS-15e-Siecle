@@ -29,7 +29,7 @@ def sourcedoc(ordered_files, dir, tei_root):
     for file in ordered_files:
         folio = re.search(r"(.*f)(\d+)", file).group(2)  # get folio number from file name
         alto_root = etree.parse(f"{dir}/{file}").getroot()
-        surface = etree.SubElement(surfaceGrp, "surface", page_attributes(alto_root, dir, folio))
+        surface = etree.SubElement(surfaceGrp, "surface", page_attributes(alto_root, folio))
         
         # create <graphic> and assign its attributes
         etree.SubElement(surface, "graphic", url=f"https://gallica.bnf.fr/iiif/ark:/12148/{os.path.basename(dir)}/f{folio}/full/full/0/native.jpg")
@@ -39,7 +39,7 @@ def sourcedoc(ordered_files, dir, tei_root):
         block_att, processed_blocks = zone_attributes(alto_root, dir, tag_dict, folio, "PrintSpace/", "TextBlock")
         lines_in_doc = 0
         for i in range(len(processed_blocks)):
-            xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"{os.path.basename(dir)}_f{folio}_z{i+1}"}
+            xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"f{folio}_z{i+1}"}
             text_block = etree.SubElement(surface, "zone", xml_id)
             for k,v in block_att[i].items():
                 text_block.attrib[k]=v
@@ -49,17 +49,23 @@ def sourcedoc(ordered_files, dir, tei_root):
             text_line_att, processed_lines = zone_attributes(alto_root, dir, tag_dict, folio, f'TextBlock[@ID="{processed_blocks[i]}"]/', "TextLine")
             if len(processed_lines) > 0:                
                 for j in range(len(processed_lines)):
-                    xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"{os.path.basename(dir)}_f{folio}_z{i+1}_l{j+1}"}
+                    xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"f{folio}_z{i+1}_l{j+1}"}
                     text_line = etree.SubElement(text_block, "zone", xml_id)
                     for k,v in text_line_att[j].items():
                         text_line.attrib[k]=v
                     lines_in_doc+=1
                     text_line.attrib["n"]=str(lines_in_doc)
 
+                    # -- PATH --
+                    xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"f{folio}_z{i+1}_l{j+1}_p"}
+                    baseline = etree.SubElement(text_line, "path", xml_id)
+                    b = alto_root.find(f'.//a:TextLine[@ID="{processed_lines[j]}"]', namespaces=NS).get("BASELINE")
+                    baseline.attrib["points"] = " ".join([re.sub(r"\s", ",", x) for x in re.findall(r"(\d+ \d+)", b)])
+
                     # -- LINE --
                     # for every <TextLine> in this ALTO file that has a <String>, create a <line>
                     if alto_root.find(f'.//a:TextLine[@ID="{processed_lines[j]}"]/a:String', namespaces=NS).get("CONTENT") is not None:
-                        xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"{os.path.basename(dir)}_f{folio}_z{i+1}_l{j+1}t"}
+                        xml_id = {"{http://www.w3.org/XML/1998/namespace}id":f"f{folio}_z{i+1}_l{j+1}t"}
                         string = etree.SubElement(text_line, "line", xml_id)
                         string.text = alto_root.find(f'.//a:TextLine[@ID="{processed_lines[j]}"]/a:String', namespaces=NS).get("CONTENT")
     return tei_root
@@ -85,7 +91,7 @@ def tags(ordered_files, dir):
     return tags_dict
 
 
-def page_attributes(root, dir, folio):
+def page_attributes(root, folio):
     """Parses the ALTO file's <Page> attributes and synthesizes those data with 
         data from file paths to derive attributes for <surface> in the XML-TEI file.
 
@@ -99,7 +105,7 @@ def page_attributes(root, dir, folio):
     """    
     att_list = root.find('.//a:Page', namespaces=NS).attrib
     page_attributes = {
-        "{http://www.w3.org/XML/1998/namespace}id":f"{os.path.basename(dir)}_f{folio}",
+        "{http://www.w3.org/XML/1998/namespace}id":f"f{folio}",
         "n":att_list["PHYSICAL_IMG_NR"],
         "ulx":"0",
         "uly":"0",
